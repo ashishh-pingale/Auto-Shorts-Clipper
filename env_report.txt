@@ -1,0 +1,57 @@
+Python 3.13.3
+--- Python Launcher versions --- 
+ -V:3.13 *        Python 3.13 (64-bit)
+--- Git --- 
+git version 2.51.2.windows.1
+--- Node.js --- 
+v22.19.0
+--- FFmpeg --- 
+'ffmpeg' is not recognized as an internal or external command,
+operable program or batch file.
+--- NVIDIA-SMI --- 
+Thu Nov 19 19:29:33 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.91                 KMD Version: 610.91        CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce GTX 1650      WDDM  |   00000000:01:00.0  On |                  N/A |
+| N/A   61C    P5              8W /   50W |    1503MiB /   4096MiB |      6%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A            2380    C+G   ...SnippingTool\SnippingTool.exe      N/A      |
+|    0   N/A  N/A            2400    C+G   ...kyb3d8bbwe\EdgeGameAssist.exe      N/A      |
+|    0   N/A  N/A            6928    C+G   ...5n1h2txyewy\TextInputHost.exe      N/A      |
+|    0   N/A  N/A            7068    C+G   ...\codex-computer-use-swift.exe      N/A      |
+|    0   N/A  N/A            7080    C+G   C:\Windows\explorer.exe               N/A      |
+|    0   N/A  N/A            9236    C+G   ...ntrolPanel\SystemSettings.exe      N/A      |
+|    0   N/A  N/A            9688    C+G   ...\Creative Cloud UI Helper.exe      N/A      |
+|    0   N/A  N/A           13624    C+G   ...m Files (x86)\Steam\steam.exe      N/A      |
+|    0   N/A  N/A           14596    C+G   ...y\StartMenuExperienceHost.exe      N/A      |
+|    0   N/A  N/A           14628    C+G   ..._cw5n1h2txyewy\SearchHost.exe      N/A      |
+|    0   N/A  N/A           15680    C+G   ...Chrome\Application\chrome.exe      N/A      |
+|    0   N/A  N/A           16188    C+G   ...adeonsoftware\AMDRSSrcExt.exe      N/A      |
+|    0   N/A  N/A           17052    C+G   ...onsoftware\RadeonSoftware.exe      N/A      |
+|    0   N/A  N/A           17716    C+G   ...26wp6bftszj\TranslucentTB.exe      N/A      |
+|    0   N/A  N/A           18024    C+G   ...\cef.win64\steamwebhelper.exe      N/A      |
+|    0   N/A  N/A           18344    C+G   ...iles\Riot Vanguard\vgtray.exe      N/A      |
+|    0   N/A  N/A           18600    C+G   ...enCommandCenterBackground.exe      N/A      |
+|    0   N/A  N/A           20008    C+G   ...7hta09mmv6hy\Build\Lively.exe      N/A      |
+|    0   N/A  N/A           22156    C+G   ...em_tray\lghub_system_tray.exe      N/A      |
+|    0   N/A  N/A           23412    C+G   ...em32\ApplicationFrameHost.exe      N/A      |
+|    0   N/A  N/A           23548    C+G   ...Chrome\Application\chrome.exe      N/A      |
+|    0   N/A  N/A           24608    C+G   ...6hy\Build\Plugins\Mpv\mpv.exe      N/A      |
+|    0   N/A  N/A           25304    C+G   ...xyewy\ShellExperienceHost.exe      N/A      |
+|    0   N/A  N/A           26400    C+G   ...t\Edge\Application\msedge.exe      N/A      |
+|    0   N/A  N/A           27684    C+G   ...2p2nqsd0c76g0\app\ChatGPT.exe      N/A      |
+|    0   N/A  N/A           29948    C+G   ...avity IDE\Antigravity IDE.exe      N/A      |
+|    0   N/A  N/A           30688    C+G   ...n\AdobeNotificationClient.exe      N/A      |
++-----------------------------------------------------------------------------------------+

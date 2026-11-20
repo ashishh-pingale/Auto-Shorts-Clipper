@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local Caches & Media (Keeps project lightweight)
+cache/
+temp/
+outputs/
+*.mp4
+*.mkv
+*.wav
+*.ass
+*.log
+
+# Portable Binaries & Archives (Avoid GitHub 100MB limit)
+ffmpeg*/
+*.exe
+*.dll
+*.zip
+*.7z
+
+# Environment variables
+.env
