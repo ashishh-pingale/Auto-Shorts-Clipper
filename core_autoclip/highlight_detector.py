@@ -231,7 +231,7 @@ Transcript:
         self,
         transcript_data: Dict[str, Any],
         target_chunk_duration: float = 60.0,
-        max_chunks: int = 30
+        max_chunks: int = 150
     ) -> List[Dict[str, Any]]:
         """
         Splits a full VOD, gameplay recording, or video into consecutive episodic parts

@@ -1,0 +1,7 @@
+# Core Auto Shorts Clipper Dependencies
+faster-whisper>=1.0.0
+yt-dlp>=2024.1.0
+opencv-python>=4.8.0
+gradio>=4.20.0
+torch>=2.1.0
+requests>=2.28.0

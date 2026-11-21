@@ -47,14 +47,16 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/auto-shorts-clipper.git
-   cd auto-shorts-clipper
+   git clone https://github.com/ashishh-pingale/Auto-Shorts-Clipper.git
+   cd Auto-Shorts-Clipper
    ```
-2. **Run the automated setup:**
-   * Double-click `create_venv.bat` to create the isolated Python 3.11 environment.
-   * Double-click `enable_gpu_cuda.bat` to install CUDA 12 and cuDNN acceleration.
-3. **Launch the Web UI:**
-   * Double-click `run.bat`
+2. **Run Step 1 (One-Click Setup):**
+   * Double-click **`1_install_setup.bat`**  
+     *(Automatically detects Python, creates `.venv`, installs `requirements.txt`, and configures NVIDIA CUDA 12 / cuDNN acceleration).*
+3. **Run Step 2 (Optional Diagnostic):**
+   * Double-click **`2_test_gpu_nvenc.bat`** to confirm your GPU and hardware NVENC 60fps encoding are operational.
+4. **Run Step 3 (Launch the Dashboard):**
+   * Double-click **`3_run_app.bat`** (or **`run.bat`**)
    * Open your browser at `http://127.0.0.1:7860`
 
 ---
@@ -62,17 +64,23 @@
 ## 📂 Project Architecture
 
 ```text
-Auto Shorts Clipper/
-├── .venv/                     # Fully isolated Python virtual environment
-├── cache/                     # Hugging Face & Faster-Whisper model weights
-├── temp/                      # Cached video downloads & 16kHz audio
-├── outputs/                   # Rendered 60fps final Shorts
+Auto-Shorts-Clipper/
+├── 1_install_setup.bat        # Step 1: Automated environment & CUDA setup
+├── 2_test_gpu_nvenc.bat       # Step 2: GPU diagnostic test
+├── 3_run_app.bat              # Step 3: Launch Web UI dashboard
+├── requirements.txt           # Declared project dependencies
+├── stop_all.bat               # Clean task & process killer
 ├── core_autoclip/
 │   ├── downloader.py          # yt-dlp 1440p/2K/4K ingestion & mono extraction
 │   ├── transcriber.py         # Faster-Whisper CUDA engine with live streaming logs
 │   ├── highlight_detector.py  # Viral hook heuristics & Episodic Series Slicer
 │   ├── clip_extractor.py      # Stream copy lossless slicing
 │   ├── smart_cropper.py       # Centered GTA character & Facecam Split-Screen
+│   ├── subtitle_generator.py  # Animated karaoke ASS captions (Nirmala UI)
+│   └── renderer.py            # Hardware NVENC 60fps render engine
+├── app.py                     # Modern Gradio Web Dashboard
+└── README.md                  # Comprehensive documentation
+```
 │   ├── subtitle_generator.py  # Animated karaoke ASS captions (Nirmala UI)
 │   └── renderer.py            # Hardware NVENC 60fps render engine
 ├── app.py                     # Modern Gradio Web Dashboard

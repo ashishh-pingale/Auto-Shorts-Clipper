@@ -6,13 +6,36 @@ Hardware Accelerated for NVIDIA GTX 1650 (4GB) & AMD Ryzen 5 5600H.
 import os
 import sys
 import json
+import tempfile
 from pathlib import Path
 
-# Add project root to path
+# 1. Lock PROJECT_ROOT to D: drive
 PROJECT_ROOT = Path(__file__).resolve().parent
+TEMP_DIR = PROJECT_ROOT / "temp"
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
+GRADIO_TEMP = TEMP_DIR / "gradio"
+GRADIO_TEMP.mkdir(parents=True, exist_ok=True)
+
+# 2. STRICTLY FORCE all temp files, Gradio staging, and AI models to D: drive
+# (Guarantees zero bytes are written to C: drive!)
+os.environ["TEMP"] = str(TEMP_DIR)
+os.environ["TMP"] = str(TEMP_DIR)
+os.environ["TMPDIR"] = str(TEMP_DIR)
+os.environ["GRADIO_TEMP_DIR"] = str(GRADIO_TEMP)
+os.environ["HF_HOME"] = str(PROJECT_ROOT / "cache" / "huggingface")
+os.environ["TORCH_HOME"] = str(PROJECT_ROOT / "cache" / "torch")
+tempfile.tempdir = str(TEMP_DIR)
+
+# Add project root to path
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import gradio as gr
+try:
+    import gradio.processing_utils
+    gradio.processing_utils.GRADIO_TEMP_DIR = str(GRADIO_TEMP)
+except Exception:
+    pass
+
 from core_autoclip.downloader import MediaDownloader
 from core_autoclip.transcriber import AudioTranscriber
 from core_autoclip.highlight_detector import HighlightDetector
@@ -120,7 +143,7 @@ def analyze_video(url_or_file, quality_choice="🌟 1440p 2K (Crisp Quality - Re
 
     mode_label = "episodic serial parts" if is_episodic else "viral candidate clips"
     status_msg = f"✅ Success! Extracted {len(highlights)} {mode_label} from '{media['title']}'."
-    clip_choices = [str(h['clip_id']) for h in highlights] if highlights else [str(i) for i in range(1, 21)]
+    clip_choices = [str(h['clip_id']) for h in highlights] if highlights else [str(i) for i in range(1, 101)]
     dropdown_update = gr.update(choices=clip_choices, value=clip_choices[0] if clip_choices else "1")
     return status_msg, media["video_path"], table_rows, dropdown_update
 
@@ -316,7 +339,7 @@ with gr.Blocks(title="Auto YouTube to Shorts Clipper", theme=gr.themes.Soft(prim
             with gr.Row():
                 min_dur_slider = gr.Slider(minimum=20, maximum=45, value=30, step=1, label="Min Duration (s) [Viral Mode]")
                 max_dur_slider = gr.Slider(minimum=45, maximum=90, value=60, step=1, label="Target / Max Duration (s)")
-                max_clips_slider = gr.Slider(minimum=1, maximum=30, value=10, step=1, label="Max Clips / Parts (Up to 30)")
+                max_clips_slider = gr.Slider(minimum=1, maximum=100, value=25, step=1, label="Max Clips / Parts (Up to 100 for Long Streams)")
 
             analyze_btn = gr.Button("⚡ Analyze Video & Generate Clips", variant="primary", size="lg")
             status_output = gr.Textbox(label="Status", lines=1)
@@ -339,7 +362,7 @@ with gr.Blocks(title="Auto YouTube to Shorts Clipper", theme=gr.themes.Soft(prim
             gr.Markdown("### 📱 Export & Styling Controls")
             clip_select = gr.Dropdown(
                 label="Select Clip Number to Render",
-                choices=[str(i) for i in range(1, 31)],
+                choices=[str(i) for i in range(1, 101)],
                 value="1",
                 info="Automatically syncs with all clips / parts found during analysis"
             )
@@ -426,4 +449,8 @@ with gr.Blocks(title="Auto YouTube to Shorts Clipper", theme=gr.themes.Soft(prim
 
 if __name__ == "__main__":
     print("[UI] Launching Auto Shorts Clipper on http://localhost:7860...")
-    demo.launch(server_name="127.0.0.1", server_port=7860, inbrowser=True)
+    try:
+        demo.launch(server_name="127.0.0.1", server_port=7860, inbrowser=True, allowed_paths=[str(PROJECT_ROOT)])
+    except OSError:
+        print("[UI] Port 7860 is already in use. Launching on the next available open port...")
+        demo.launch(server_name="127.0.0.1", inbrowser=True, allowed_paths=[str(PROJECT_ROOT)])
