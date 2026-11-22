@@ -59,12 +59,24 @@ extractor = ClipExtractor(output_dir=PROJECT_ROOT / "temp" / "clips")
 cropper = SmartCropper()
 renderer = VideoRenderer(output_dir=PROJECT_ROOT / "outputs")
 
-def analyze_video(url_or_file, quality_choice="🌟 1440p 2K (Crisp Quality - Recommended)", model_size="small", clipping_strategy="🔥 AI Viral Highlights (Hook & Moment Scoring)", min_dur=30, max_dur=60, max_clips=10, progress=gr.Progress()):
+def analyze_video(url_or_file, quality_choice="🌟 1440p 2K (Crisp Quality - Recommended)", model_size="small", clipping_strategy="🔥 AI Viral Highlights (Hook & Moment Scoring)", duration_choice="60 Seconds (1-Minute Short - Recommended)", parts_count_choice="5 Equal Parts (Recommended)", progress=gr.Progress()):
     if not url_or_file:
         return "⚠️ Please enter a YouTube URL or select a video file.", None, [], gr.update()
 
     # Parse whisper model name (e.g. "small (Recommended..." -> "small")
     chosen_model = model_size.split()[0].strip()
+
+    # Parse duration in seconds (e.g. "60 Seconds..." -> 60.0)
+    try:
+        target_duration = float(duration_choice.split()[0].replace("s", "").replace("Seconds", ""))
+    except Exception:
+        target_duration = 60.0
+
+    # Parse parts count (e.g. "5 Equal Parts" -> 5)
+    try:
+        target_parts = int(parts_count_choice.split()[0])
+    except Exception:
+        target_parts = 5
 
     progress(0.05, desc="Ingesting media & extracting 16kHz audio...")
     try:
@@ -101,12 +113,17 @@ def analyze_video(url_or_file, quality_choice="🌟 1440p 2K (Crisp Quality - Re
 
     is_episodic = "Episodic" in clipping_strategy or "Part" in clipping_strategy
     if is_episodic:
-        progress(0.65, desc="Slicing VOD into consecutive parts (Part 1, Part 2...)...")
+        is_count = "count" in clipping_strategy.lower() or "number" in clipping_strategy.lower()
+        mode_desc = f"Slicing VOD into {target_parts} parts..." if is_count else f"Slicing VOD into {target_duration:.0f}s parts..."
+        progress(0.65, desc=mode_desc)
         try:
+            split_mode = "count" if is_count else "duration"
             highlights = detector.generate_sequential_chunks(
                 transcript,
-                target_chunk_duration=float(max_dur),
-                max_chunks=int(max_clips)
+                split_mode=split_mode,
+                target_chunk_duration=target_duration,
+                target_num_parts=target_parts,
+                max_chunks=150
             )
             CURRENT_SESSION["highlights"] = highlights
         except Exception as e:
@@ -114,11 +131,12 @@ def analyze_video(url_or_file, quality_choice="🌟 1440p 2K (Crisp Quality - Re
     else:
         progress(0.65, desc="Analyzing transcript for viral hooks & moments...")
         try:
+            min_dur = max(15.0, target_duration - 25.0)
             highlights = detector.find_highlights(
                 transcript,
-                min_duration=float(min_dur),
-                max_duration=float(max_dur),
-                max_clips=int(max_clips)
+                min_duration=min_dur,
+                max_duration=target_duration,
+                max_clips=target_parts
             )
             CURRENT_SESSION["highlights"] = highlights
         except Exception as e:
@@ -245,15 +263,26 @@ def render_short_clip(clip_index, style_choice, framing_mode="Centered Character
         elif "Impact" in font_choice:
             chosen_font = "Impact"
 
-        sub_gen = SubtitleGenerator(font_name=chosen_font, highlight_color=highlight_hex)
-        ass_path = PROJECT_ROOT / "temp" / f"sub_{clip['clip_id']}.ass"
-        sub_gen.generate_karaoke_ass(clip_words, str(ass_path), screen_w=sub_w, screen_h=sub_h)
+        # Generate subtitles only if words exist in this clip/part
+        ass_path = None
+        if clip_words:
+            sub_gen = SubtitleGenerator(font_name=chosen_font, highlight_color=highlight_hex)
+            ass_file = PROJECT_ROOT / "temp" / f"sub_{clip['clip_id']}.ass"
+            sub_gen.generate_karaoke_ass(clip_words, str(ass_file), screen_w=sub_w, screen_h=sub_h)
+            ass_path = str(ass_file)
 
         progress(0.8, desc="Hardware NVENC 60fps rendering (GTX 1650)...")
-        out_filename = f"{prefix}_{clip['clip_id']}_{clip['title'][:20].replace(' ', '_')}.mp4"
+
+        # Sanitize title for Windows NTFS compatibility (remove : ? / \ * < > |)
+        clean_title = "".join(c for c in clip.get('title', '') if c.isalnum() or c in (" ", "_", "-")).strip()
+        clean_title = clean_title.replace(" ", "_")[:20]
+        if not clean_title:
+            clean_title = f"part_{clip['clip_id']}"
+        out_filename = f"{prefix}_{clip['clip_id']}_{clean_title}.mp4"
+
         final_path = renderer.render_final_short(
             input_video_path=raw_clip_path,
-            subtitle_ass_path=str(ass_path),
+            subtitle_ass_path=ass_path,
             crop_data=crop_data,
             output_filename=out_filename,
             use_nvenc=True,
@@ -330,16 +359,48 @@ with gr.Blocks(title="Auto YouTube to Shorts Clipper", theme=gr.themes.Soft(prim
                 label="✂️ Clipping Strategy",
                 choices=[
                     "🔥 AI Viral Highlights (Hook & Moment Scoring)",
-                    "📦 Episodic Series Slicer (VOD to Part 1, Part 2, Part 3...)"
+                    "⏱️ Episodic Series: By Duration per Part (e.g. 60s each)",
+                    "🔢 Episodic Series: By Total Number of Parts (e.g. Split into 5 equal parts)"
                 ],
                 value="🔥 AI Viral Highlights (Hook & Moment Scoring)",
-                info="Choose 'AI Viral Highlights' for standout moments, or 'Episodic Slicer' to turn whole 10-20 min VODs into serial shorts!"
+                info="Choose AI Viral Moments, or systematically cut the VOD into sequential serial episodes!"
             )
 
             with gr.Row():
-                min_dur_slider = gr.Slider(minimum=20, maximum=45, value=30, step=1, label="Min Duration (s) [Viral Mode]")
-                max_dur_slider = gr.Slider(minimum=45, maximum=90, value=60, step=1, label="Target / Max Duration (s)")
-                max_clips_slider = gr.Slider(minimum=1, maximum=100, value=25, step=1, label="Max Clips / Parts (Up to 100 for Long Streams)")
+                duration_dropdown = gr.Dropdown(
+                    label="⏱️ Duration of Each Part",
+                    choices=[
+                        "30 Seconds (Fast Short / TikTok)",
+                        "45 Seconds (Standard Reel)",
+                        "60 Seconds (1-Minute Short - Recommended)",
+                        "90 Seconds (Extended Episode)",
+                        "120 Seconds (2-Minute Episode)",
+                        "180 Seconds (3-Minute Part)"
+                    ],
+                    value="60 Seconds (1-Minute Short - Recommended)",
+                    info="Used when 'By Duration' or 'AI Viral Highlights' is chosen"
+                )
+                parts_count_dropdown = gr.Dropdown(
+                    label="🔢 Total Number of Parts to Split Into",
+                    choices=[
+                        "2 Equal Parts",
+                        "3 Equal Parts",
+                        "4 Equal Parts",
+                        "5 Equal Parts (Recommended)",
+                        "6 Equal Parts",
+                        "8 Equal Parts",
+                        "10 Equal Parts",
+                        "12 Equal Parts",
+                        "15 Equal Parts",
+                        "20 Equal Parts",
+                        "25 Equal Parts",
+                        "30 Equal Parts",
+                        "50 Equal Parts",
+                        "100 Equal Parts (Full Stream)"
+                    ],
+                    value="5 Equal Parts (Recommended)",
+                    info="Used when 'By Total Number of Parts' is chosen"
+                )
 
             analyze_btn = gr.Button("⚡ Analyze Video & Generate Clips", variant="primary", size="lg")
             status_output = gr.Textbox(label="Status", lines=1)
@@ -431,7 +492,7 @@ with gr.Blocks(title="Auto YouTube to Shorts Clipper", theme=gr.themes.Soft(prim
 
     analyze_btn.click(
         fn=analyze_video,
-        inputs=[video_input, quality_dropdown, model_dropdown, clipping_mode, min_dur_slider, max_dur_slider, max_clips_slider],
+        inputs=[video_input, quality_dropdown, model_dropdown, clipping_mode, duration_dropdown, parts_count_dropdown],
         outputs=[status_output, source_video_preview, highlight_table, clip_select]
     )
 

@@ -7,9 +7,10 @@
 
 ## 🚀 Key Features
 
-* **✂️ Dual Clipping Strategies:**
+* **✂️ Flexible Clipping Strategies:**
   * **🔥 AI Viral Highlights:** Uses semantic heuristics & hook scoring to extract the most engaging 30s–60s moments from podcasts, gameplays, and streams.
-  * **📦 Episodic Series Slicer:** Slices 10–30 minute VODs into consecutive sequential episodes (**Part 1, Part 2, Part 3...**) snapping cleanly to natural sentence/speech boundaries without cutting off words mid-sentence.
+  * **⏱️ Episodic Slicing by Duration:** Cuts full VODs into consecutive sequential episodes of a target length (e.g. 60s, 90s each) snapping cleanly to natural sentence/speech boundaries without cutting off words mid-sentence.
+  * **🔢 Episodic Slicing by Count:** Divides any video into an exact number of equal parts (e.g. split a 15-minute VOD into exactly 5 equal parts: Part 1/5 through Part 5/5) with seamless speech boundary snapping.
 * **🧠 Faster-Whisper with Turbo Mode:**
   * Supports models from `tiny` (~400MB VRAM) to `small` (~850MB VRAM) and `turbo`/`large-v3` (~3.5GB VRAM).
   * Hindi & Devanagari optimization with `Nirmala UI` font and automatic orphan matra fixing (zero dotted circles).

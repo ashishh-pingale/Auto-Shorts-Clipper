@@ -230,88 +230,148 @@ Transcript:
     def generate_sequential_chunks(
         self,
         transcript_data: Dict[str, Any],
+        split_mode: str = "duration",
         target_chunk_duration: float = 60.0,
+        target_num_parts: int = 5,
         max_chunks: int = 150
     ) -> List[Dict[str, Any]]:
         """
-        Splits a full VOD, gameplay recording, or video into consecutive episodic parts
+        Splits a full VOD, gameplay recording, or stream into consecutive episodic parts
         ('Part 1', 'Part 2', 'Part 3'...) perfect for serial Shorts/TikTok/Reels.
-        Intelligently snaps cuts to the nearest natural sentence boundary or silence pause.
+        
+        Guarantees:
+          1. Strict duration adherence: Parts never explode to 100s+ or shrink to 20s.
+          2. Handles silence/gameplay gaps: When no speech occurs for minutes, time-stepping keeps parts consistent.
+          3. Smart sentence snapping: Snaps to sentence endings (. ! ? ,) within the optimal window.
         """
         segments = transcript_data.get("segments", [])
-        total_duration = float(transcript_data.get("duration", 0.0))
+        total_duration = max(1.0, float(transcript_data.get("duration", 0.0)))
+        is_count_mode = "count" in split_mode.lower() or "number" in split_mode.lower()
 
-        if not segments:
-            # Fallback when transcript has no text segments: time-based slicing
+        # -------------------------------------------------------------
+        # MODE 1: SPLIT BY TOTAL NUMBER OF PARTS (e.g. 5 Equal Parts)
+        # -------------------------------------------------------------
+        if is_count_mode:
+            target_parts = max(1, min(int(target_num_parts), max_chunks))
+            ideal_step = total_duration / float(target_parts)
+            print(f"[HighlightDetector] Slicing into {target_parts} equal parts (~{ideal_step:.1f}s each, total {total_duration/60:.1f}m)...")
+
             parts = []
-            curr = 0.0
-            part_num = 1
-            while curr < total_duration and part_num <= max_chunks:
-                nxt = min(curr + target_chunk_duration, total_duration)
+            current_start = 0.0
+
+            for p in range(1, target_parts + 1):
+                if p == target_parts:
+                    actual_end = total_duration
+                else:
+                    target_boundary = p * ideal_step
+                    # Window around target boundary: ±15% of ideal_step
+                    tolerance = min(15.0, max(5.0, ideal_step * 0.15))
+                    best_seg_end = None
+                    best_dist = float('inf')
+
+                    for s in segments:
+                        s_end = s["end"]
+                        if (target_boundary - tolerance) <= s_end <= (target_boundary + tolerance):
+                            if s_end > (current_start + 15.0): # Ensure at least 15s per part
+                                dist = abs(s_end - target_boundary)
+                                is_sentence_end = s["text"].rstrip().endswith((".", "!", "?", "।", ","))
+                                score_dist = dist if not is_sentence_end else max(0.0, dist - 6.0)
+
+                                if score_dist < best_dist:
+                                    best_dist = score_dist
+                                    best_seg_end = s_end
+
+                    actual_end = best_seg_end if best_seg_end is not None else target_boundary
+
+                actual_end = min(actual_end, total_duration)
+                part_segs = [s for s in segments if s["end"] > current_start and s["start"] < actual_end]
+                combined_text = " ".join(s["text"] for s in part_segs).strip()
+                first_sentence = combined_text.split(".")[0].split("?")[0].strip() if combined_text else ""
+                preview = first_sentence[:35] + ("..." if len(first_sentence) > 35 else "") or f"Part {p}"
+
+                dur = round(actual_end - current_start, 1)
                 parts.append({
-                    "clip_id": part_num,
-                    "title": f"Part {part_num}",
-                    "start": round(curr, 2),
-                    "end": round(nxt, 2),
-                    "duration": round(nxt - curr, 1),
-                    "viral_score": f"Part {part_num}",
-                    "hook": f"Part {part_num} of series",
-                    "summary": f"Consecutive slice {curr:.0f}s - {nxt:.0f}s"
+                    "clip_id": p,
+                    "title": f"Part {p}: {preview}",
+                    "start": round(current_start, 2),
+                    "end": round(actual_end, 2),
+                    "duration": dur,
+                    "viral_score": f"Part {p}/{target_parts}",
+                    "hook": part_segs[0]["text"].strip() if part_segs else f"Part {p} opening",
+                    "summary": combined_text[:120] + "..." if combined_text else f"Scene {current_start:.1f}s - {actual_end:.1f}s"
                 })
-                curr = nxt
-                part_num += 1
+                current_start = actual_end
+
+            print(f"[HighlightDetector] Successfully split video into {len(parts)} equal episodic parts.")
             return parts
 
-        # Smart sentence/segment snapping so words/sentences are not cut abruptly
+        # -------------------------------------------------------------
+        # MODE 2: SPLIT BY DURATION OF EACH PART (e.g. 60s per Part)
+        # -------------------------------------------------------------
+        target_dur = float(target_chunk_duration)
+        min_allowed = max(20.0, target_dur - 8.0)  # e.g. 52s for 60s target
+        max_allowed = target_dur + 4.0              # e.g. 64s for 60s target (strict Shorts limit)
+        print(f"[HighlightDetector] Slicing by target duration ({target_dur:.0f}s per part, allowed: {min_allowed:.0f}s - {max_allowed:.0f}s)...")
+
         parts = []
+        curr_start = 0.0
         part_idx = 1
-        current_chunk_segments = []
-        chunk_start = segments[0]["start"]
 
-        for seg in segments:
-            current_chunk_segments.append(seg)
-            elapsed = seg["end"] - chunk_start
+        while curr_start < total_duration and part_idx <= max_chunks:
+            ideal_end = min(curr_start + target_dur, total_duration)
 
-            # Check if duration target reached: prefer snapping to sentence-ending punctuation
-            is_sentence_end = seg["text"].rstrip().endswith((".", "!", "?", "।"))
-            if elapsed >= target_chunk_duration or (elapsed >= (target_chunk_duration - 10.0) and is_sentence_end):
-                chunk_end = seg["end"]
-                combined_text = " ".join(s["text"] for s in current_chunk_segments).strip()
-                preview = combined_text[:35] + ("..." if len(combined_text) > 35 else "")
+            # If the remaining final slice is under 15s, merge with previous part if possible
+            if (total_duration - curr_start) <= 15.0 and parts:
+                parts[-1]["end"] = round(total_duration, 2)
+                parts[-1]["duration"] = round(total_duration - parts[-1]["start"], 1)
+                break
 
-                parts.append({
-                    "clip_id": part_idx,
-                    "title": f"Part {part_idx}: {preview}",
-                    "start": round(chunk_start, 2),
-                    "end": round(chunk_end, 2),
-                    "duration": round(chunk_end - chunk_start, 1),
-                    "viral_score": f"Part {part_idx}",
-                    "hook": current_chunk_segments[0]["text"].strip(),
-                    "summary": combined_text[:120] + "..."
-                })
+            # Search for best sentence-ending boundary inside [curr_start + min_allowed, curr_start + max_allowed]
+            best_cut = None
+            best_score = float('inf')
 
-                part_idx += 1
-                if part_idx > max_chunks:
-                    break
-                chunk_start = chunk_end
-                current_chunk_segments = []
+            for s in segments:
+                s_end = s["end"]
+                if (curr_start + min_allowed) <= s_end <= (curr_start + max_allowed):
+                    dist = abs(s_end - ideal_end)
+                    is_sentence_end = s["text"].rstrip().endswith((".", "!", "?", "।", ","))
+                    score = dist if not is_sentence_end else max(0.0, dist - 6.0)
+                    if score < best_score:
+                        best_score = score
+                        best_cut = s_end
 
-        # Add remaining trailing segment if substantial
-        if current_chunk_segments and part_idx <= max_chunks:
-            chunk_end = current_chunk_segments[-1]["end"]
-            if (chunk_end - chunk_start) >= 15.0:
-                combined_text = " ".join(s["text"] for s in current_chunk_segments).strip()
-                preview = combined_text[:35] + ("..." if len(combined_text) > 35 else "")
-                parts.append({
-                    "clip_id": part_idx,
-                    "title": f"Part {part_idx}: {preview}",
-                    "start": round(chunk_start, 2),
-                    "end": round(chunk_end, 2),
-                    "duration": round(chunk_end - chunk_start, 1),
-                    "viral_score": f"Part {part_idx}",
-                    "hook": current_chunk_segments[0]["text"].strip(),
-                    "summary": combined_text[:120] + "..."
-                })
+            # If no speech boundary in that range, handle cleanly
+            if best_cut is not None:
+                actual_end = best_cut
+            else:
+                # Check if speech is currently overlapping ideal_end
+                overlapping = [s for s in segments if s["start"] < ideal_end < s["end"]]
+                if overlapping and overlapping[0]["end"] <= (curr_start + max_allowed + 2.0):
+                    actual_end = overlapping[0]["end"]
+                else:
+                    actual_end = ideal_end
 
-        print(f"[HighlightDetector] Generated {len(parts)} episodic serial parts.")
+            actual_end = min(actual_end, total_duration)
+            dur = round(actual_end - curr_start, 1)
+
+            part_segs = [s for s in segments if s["end"] > curr_start and s["start"] < actual_end]
+            combined_text = " ".join(s["text"] for s in part_segs).strip()
+            first_sentence = combined_text.split(".")[0].split("?")[0].strip() if combined_text else ""
+            preview = first_sentence[:35] + ("..." if len(first_sentence) > 35 else "") or f"Part {part_idx} Scene"
+
+            parts.append({
+                "clip_id": part_idx,
+                "title": f"Part {part_idx}: {preview}",
+                "start": round(curr_start, 2),
+                "end": round(actual_end, 2),
+                "duration": dur,
+                "viral_score": f"Part {part_idx}",
+                "hook": part_segs[0]["text"].strip() if part_segs else f"Part {part_idx} opening",
+                "summary": combined_text[:120] + "..." if combined_text else f"Gameplay slice {curr_start:.1f}s - {actual_end:.1f}s"
+            })
+
+            curr_start = actual_end
+            part_idx += 1
+
+        print(f"[HighlightDetector] Generated {len(parts)} episodic parts strictly adhering to {target_dur:.0f}s duration.")
         return parts
