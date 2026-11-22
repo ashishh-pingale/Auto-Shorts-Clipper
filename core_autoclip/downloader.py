@@ -2,7 +2,7 @@
 core_autoclip.downloader
 Handles video downloading via yt-dlp, codec detection, hardware NVENC transcoding,
 and audio extraction using local FFmpeg.
-Stores all media in D:\\Ai Softwares\\Auto Shorts Clipper\\temp\\ (0 bytes on C: drive).
+Stores all media in D:\\Ai Softwares\\Auto Shorts Clipper\\temp\\ ().
 """
 
 import os

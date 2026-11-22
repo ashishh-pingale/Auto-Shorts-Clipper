@@ -69,7 +69,7 @@ def get_recent_temp_videos():
     videos = sorted(temp_dir.glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True)
     return [str(v) for v in videos if "clip_" not in v.name]
 
-def analyze_video(url_or_file, quality_choice="1440p QHD (Recommended)", codec_choice="H.264 / AVC (DaVinci & Premiere)", model_size="small (~850 MB - Recommended)", clipping_strategy="AI Viral Highlights (Hook & Engagement Scoring)", duration_choice="60 Seconds (Recommended)", parts_count_choice="5 Parts (Recommended)", progress=gr.Progress()):
+def analyze_video(url_or_file, quality_choice="1440p 2K (Recommended)", codec_choice="H.264 (Universal NLE)", model_size="small (Recommended - 850 MB)", clipping_strategy="AI Viral Highlights (Hook & Engagement Scoring)", duration_choice="60 Seconds (Recommended)", parts_count_choice="5 Parts (Recommended)", progress=gr.Progress()):
     if not url_or_file:
         return "Notice: Please enter a YouTube URL or select an existing video file.", None, [], gr.update()
 
@@ -177,7 +177,7 @@ def analyze_video(url_or_file, quality_choice="1440p QHD (Recommended)", codec_c
     dropdown_update = gr.update(choices=clip_choices, value=clip_choices[0] if clip_choices else "1")
     return status_msg, media["video_path"], table_rows, dropdown_update
 
-def render_short_clip(clip_index, style_choice, framing_mode="Centered Subject (Gaming & Gameplay)", manual_offset_pct=50, aspect_choice="Vertical 9:16 (Shorts / Reels / TikTok)", font_choice="Poppins (Modern Geometric Sans)", progress=gr.Progress()):
+def render_short_clip(clip_index, style_choice, framing_mode="Centered Subject (Gaming)", manual_offset_pct=50, aspect_choice="Vertical 9:16 (Shorts / Reels)", font_choice="Poppins (Modern Sans)", progress=gr.Progress()):
     highlights = CURRENT_SESSION.get("highlights", [])
     media = CURRENT_SESSION.get("media")
     transcript = CURRENT_SESSION.get("transcript")
@@ -278,7 +278,7 @@ def render_short_clip(clip_index, style_choice, framing_mode="Centered Subject (
         print(f"[Render Error]\n{err_details}")
         return None, f"Error [Render]: {str(e)}"
 
-def batch_render_all_clips(style_choice, framing_mode="Centered Subject (Gaming & Gameplay)", manual_offset_pct=50, aspect_choice="Vertical 9:16 (Shorts / Reels / TikTok)", font_choice="Poppins (Modern Geometric Sans)", progress=gr.Progress()):
+def batch_render_all_clips(style_choice, framing_mode="Centered Subject (Gaming)", manual_offset_pct=50, aspect_choice="Vertical 9:16 (Shorts / Reels)", font_choice="Poppins (Modern Sans)", progress=gr.Progress()):
     highlights = CURRENT_SESSION.get("highlights", [])
     if not highlights:
         return None, "Notice: Please analyze a video first before starting batch render."
@@ -508,15 +508,17 @@ input[type="text"]:focus, textarea:focus {
     align-items: center !important;
 }
 
-/* Dropdown Inner Elements: ELIMINATE the inner black patch box and borders */
+/* Dropdown Inner Elements: ELIMINATE inner black patch, prevent text truncation/slicing */
 .gr-dropdown input,
 .gr-dropdown .wrap-inner,
+.gr-dropdown .secondary-wrap,
 .gr-dropdown .single-select,
 .gr-dropdown .value-default,
 .gr-dropdown .value-default span,
 .gr-dropdown span,
 [data-testid="dropdown"] input,
 [data-testid="dropdown"] .wrap-inner,
+[data-testid="dropdown"] .secondary-wrap,
 [data-testid="dropdown"] .single-select,
 [data-testid="dropdown"] span {
     background: transparent !important;
@@ -526,12 +528,24 @@ input[type="text"]:focus, textarea:focus {
     box-shadow: none !important;
     outline: none !important;
     color: var(--nle-text-primary) !important;
-    font-size: 0.84rem !important;
+    font-size: 0.83rem !important;
     line-height: 1.4 !important;
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
     min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.gr-dropdown .single-select,
+[data-testid="dropdown"] .single-select {
+    display: block !important;
+    max-width: 90% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
 /* Dropdown Options Popup Menu */
@@ -738,36 +752,36 @@ with gr.Blocks(title="AutoClipper PRO - Video Studio", theme=gr.themes.Default(p
                     quality_dropdown = gr.Dropdown(
                         label="Resolution",
                         choices=[
-                            "1440p QHD (Recommended)",
+                            "1440p 2K (Recommended)",
                             "1080p Full HD",
                             "2160p 4K UHD"
                         ],
-                        value="1440p QHD (Recommended)",
+                        value="1440p 2K (Recommended)",
                         info="1440p yields razor-sharp vertical crops"
                     )
                     codec_dropdown = gr.Dropdown(
                         label="Video Codec",
                         choices=[
-                            "H.264 / AVC (DaVinci & Premiere)",
-                            "HEVC / H.265 (High Efficiency)",
+                            "H.264 (Universal NLE)",
+                            "HEVC (H.265)",
                             "Native (AV1 / VP9)"
                         ],
-                        value="H.264 / AVC (DaVinci & Premiere)",
+                        value="H.264 (Universal NLE)",
                         info="H.264 avoids offline media in DaVinci Free"
                     )
-                    model_dropdown = gr.Dropdown(
-                        label="Speech Model",
-                        choices=[
-                            "small (~850 MB - Recommended)",
-                            "base (~500 MB - Fast)",
-                            "tiny (~400 MB - Lightweight)",
-                            "medium (~2 GB - High Accuracy)",
-                            "turbo (~1.6 GB - Turbo)",
-                            "large-v3 (~3.5 GB - Max Accuracy)"
-                        ],
-                        value="small (~850 MB - Recommended)",
-                        info="Auto-flushes VRAM after transcription"
-                    )
+                model_dropdown = gr.Dropdown(
+                    label="Speech Recognition Model",
+                    choices=[
+                        "small (Recommended - 850 MB)",
+                        "base (Fast - 500 MB)",
+                        "tiny (Lightweight - 400 MB)",
+                        "medium (Accurate - 2 GB)",
+                        "turbo (Turbo - 1.6 GB)",
+                        "large-v3 (Max - 3.5 GB)"
+                    ],
+                    value="small (Recommended - 850 MB)",
+                    info="Auto-flushes VRAM after transcription"
+                )
 
             # PANEL 2: Slicing Engine
             with gr.Column(elem_classes=["nle-panel"]):
@@ -856,23 +870,23 @@ with gr.Blocks(title="AutoClipper PRO - Video Studio", theme=gr.themes.Default(p
                     aspect_dropdown = gr.Dropdown(
                         label="Aspect Ratio",
                         choices=[
-                            "Vertical 9:16 (Shorts / Reels / TikTok)",
-                            "Portrait 4:5 (Instagram Feed & Reels)",
-                            "Portrait 3:4 (Standard Portrait)",
-                            "Horizontal 16:9 (Landscape / Widescreen)"
+                            "Vertical 9:16 (Shorts / Reels)",
+                            "Portrait 4:5 (Instagram)",
+                            "Portrait 3:4 (Portrait)",
+                            "Horizontal 16:9 (Landscape)"
                         ],
-                        value="Vertical 9:16 (Shorts / Reels / TikTok)",
+                        value="Vertical 9:16 (Shorts / Reels)",
                         info="4:5 and 3:4 preserve extra width"
                     )
                     framing_dropdown = gr.Dropdown(
                         label="Framing Mode",
                         choices=[
-                            "Centered Subject (Gaming & Gameplay)",
-                            "Streamer Split-Screen (Facecam Top, Game Bottom)",
-                            "Auto Face Tracking (Podcasts & Speeches)",
-                            "Custom Horizontal Offset"
+                            "Centered Subject (Gaming)",
+                            "Split-Screen (Streamer + Game)",
+                            "Auto Face Tracking",
+                            "Custom Offset"
                         ],
-                        value="Centered Subject (Gaming & Gameplay)",
+                        value="Centered Subject (Gaming)",
                         info="Centered tracks gameplay protagonist"
                     )
 
@@ -889,13 +903,13 @@ with gr.Blocks(title="AutoClipper PRO - Video Studio", theme=gr.themes.Default(p
                     font_dropdown = gr.Dropdown(
                         label="Subtitle Typography",
                         choices=[
-                            "Poppins (Modern Geometric Sans)",
-                            "Nirmala UI (Devanagari & Latin)",
+                            "Poppins (Modern Sans)",
+                            "Nirmala UI (Hindi / Latin)",
                             "Segoe UI (Clean Sans)",
                             "Impact (Bold Punch)",
                             "Arial Black (Heavy Gothic)"
                         ],
-                        value="Poppins (Modern Geometric Sans)",
+                        value="Poppins (Modern Sans)",
                         info="Nirmala UI renders Hindi matras natively"
                     )
                     style_dropdown = gr.Dropdown(
@@ -903,7 +917,7 @@ with gr.Blocks(title="AutoClipper PRO - Video Studio", theme=gr.themes.Default(p
                         choices=[
                             "Electric Yellow (High Contrast)",
                             "Neon Green (Vibrant Accent)",
-                            "Clean White (Minimal Monochrome)"
+                            "Clean White (Minimal)"
                         ],
                         value="Electric Yellow (High Contrast)"
                     )
