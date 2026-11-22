@@ -1,4 +1,4 @@
-# 🎬 Auto Shorts Clipper
+# ⚡ AutoClipper
 
 > **High-Performance, AI-Powered YouTube & Video to Shorts / Reels / TikTok Pipeline.**  
 > Optimized for fast, isolated execution with hardware NVENC 60fps export and smart VRAM management (runs smoothly on 4GB VRAM cards like the GTX 1650, while scaling up to RTX 3060/4080/4090).
@@ -11,6 +11,9 @@
   * **🔥 AI Viral Highlights:** Uses semantic heuristics & hook scoring to extract the most engaging 30s–60s moments from podcasts, gameplays, and streams.
   * **⏱️ Episodic Slicing by Duration:** Cuts full VODs into consecutive sequential episodes of a target length (e.g. 60s, 90s each) snapping cleanly to natural sentence/speech boundaries without cutting off words mid-sentence.
   * **🔢 Episodic Slicing by Count:** Divides any video into an exact number of equal parts (e.g. split a 15-minute VOD into exactly 5 equal parts: Part 1/5 through Part 5/5) with seamless speech boundary snapping.
+* **🎬 Universal NLE Codec Compatibility:**
+  * Option to ingest in **Universal H.264** or **HEVC (H.265)**.
+  * Resolves the dreaded DaVinci Resolve Free / Premiere Pro AV1 "Media Offline" bug via high-speed (120+ FPS) hardware NVENC transcoding.
 * **🧠 Faster-Whisper with Turbo Mode:**
   * Supports models from `tiny` (~400MB VRAM) to `small` (~850MB VRAM) and `turbo`/`large-v3` (~3.5GB VRAM).
   * Hindi & Devanagari optimization with `Nirmala UI` font and automatic orphan matra fixing (zero dotted circles).
@@ -70,21 +73,22 @@ Auto-Shorts-Clipper/
 ├── 2_test_gpu_nvenc.bat       # Step 2: GPU diagnostic test
 ├── 3_run_app.bat              # Step 3: Launch Web UI dashboard
 ├── requirements.txt           # Declared project dependencies
+├── run.bat                    # Direct launch script
 ├── stop_all.bat               # Clean task & process killer
 ├── core_autoclip/
-│   ├── downloader.py          # yt-dlp 1440p/2K/4K ingestion & mono extraction
+│   ├── downloader.py          # yt-dlp 1440p/2K/4K ingestion, codec checking & NVENC transcode
 │   ├── transcriber.py         # Faster-Whisper CUDA engine with live streaming logs
 │   ├── highlight_detector.py  # Viral hook heuristics & Episodic Series Slicer
 │   ├── clip_extractor.py      # Stream copy lossless slicing
 │   ├── smart_cropper.py       # Centered GTA character & Facecam Split-Screen
 │   ├── subtitle_generator.py  # Animated karaoke ASS captions (Nirmala UI)
 │   └── renderer.py            # Hardware NVENC 60fps render engine
-├── app.py                     # Modern Gradio Web Dashboard
+├── app.py                     # AutoClipper Modern Gradio Web Dashboard
 └── README.md                  # Comprehensive documentation
 ```
-│   ├── subtitle_generator.py  # Animated karaoke ASS captions (Nirmala UI)
-│   └── renderer.py            # Hardware NVENC 60fps render engine
-├── app.py                     # Modern Gradio Web Dashboard
-├── run.bat                    # One-click app launcher
-└── stop_all.bat               # Emergency process cleanup
-```
+
+---
+
+## 👨‍💻 Author & Credits
+
+Developed with ❤️ by **[Ashish Pingale](https://github.com/ashishh-pingale)**.

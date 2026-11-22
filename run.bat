@@ -1,8 +1,8 @@
 @echo off
 cd /d "%~dp0"
-title Auto Shorts Clipper Dashboard
+title AutoClipper Dashboard
 echo ========================================================
-echo Launching Auto Shorts Clipper Dashboard
+echo Launching AutoClipper Web Dashboard
 echo ========================================================
 echo.
 
@@ -22,7 +22,7 @@ set "TORCH_HOME=%~dp0cache\torch"
 
 if not exist "%~dp0temp\gradio" mkdir "%~dp0temp\gradio"
 
-echo Temp & Cache Location: %TEMP%
+echo Temp and Cache Location: %TEMP%
 echo.
 
 .venv\Scripts\python.exe app.py
